@@ -30,6 +30,7 @@ class History(db.Model):
     from_curr = db.Column(db.String(200), nullable=False)
     to_curr = db.Column(db.String(500), nullable=False)
     date_conv = db.Column(db.String(100), nullable=False)
+    amount = db.Column(db.Integer, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     def __repr__(self):
@@ -60,8 +61,9 @@ def login():
                     return resp
                 else:
                     flash("Wrong Password",category="warning")
+                    return render_template("index.html", isHidden="")
 
-        return render_template("index.html")
+        return render_template("index.html", isHidden="isHidden")
     else:
         return redirect("/converter")
  
@@ -74,6 +76,7 @@ def converter():
                 amount = float(amount)
                 from_c = request.form['from_c']
                 to_c = request.form['to_c']
+                # 'https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=JPY&apikey=demo'
                 url = 'https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency={}&to_currency={}&apikey={}'.format(
                     from_c, to_c, API_KEY)
                 response = requests.get(url=url).json()
@@ -88,18 +91,18 @@ def converter():
 
                 userId = request.cookies.get('currUser')
                 user = User.query.filter_by(id=userId).first()
-                item = History(from_curr=from_c_code,to_curr=to_c_code,date_conv=time, owner=user)
+                item = History(from_curr=from_c_code,to_curr=to_c_code,date_conv=time, amount=rate, owner=user)
                 db.session.add(item)
                 db.session.commit()
                 
-                return render_template('home.html', result=round(result, 2), amount=amount,
+                return render_template('converter.html', result=round(result, 2), amount=amount,
                                     from_c_code=from_c_code, from_c_name=from_c_name,
                                     to_c_code=to_c_code, to_c_name=to_c_name, time=time)
             except Exception as e:
                 return '<h1>Bad Request : {}</h1>'.format(e)
 
         else:
-            return render_template('home.html')
+            return render_template('converter.html')
     else:
         return redirect("/")
 
@@ -111,7 +114,7 @@ def history():
         user = User.query.filter_by(id=userId).first()
         allHistory = user.hist
 
-        return render_template("index.html", history=allHistory)
+        return render_template("history.html", history=allHistory)
     else:
         return redirect("/")
 
